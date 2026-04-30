@@ -14,6 +14,7 @@
     <el-space v-if="release" wrap style="margin-bottom: 18px">
       <el-tag v-if="release.is_latest" type="success">latest</el-tag>
       <el-tag :type="release.release_type === 'beta' ? 'warning' : 'primary'">{{ release.release_type }}</el-tag>
+      <el-tag v-if="release.tag_name" type="info">Tag: {{ release.tag_name }}</el-tag>
       <el-link v-if="release.source_url" :href="release.source_url" target="_blank">来源页面</el-link>
     </el-space>
 

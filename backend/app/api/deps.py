@@ -21,6 +21,6 @@ def get_current_admin(
     if not username:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     user = db.scalar(select(User).where(User.username == username))
-    if not user or user.role != "admin":
+    if not user or not user.is_active or user.role != "admin":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Admin required")
     return user

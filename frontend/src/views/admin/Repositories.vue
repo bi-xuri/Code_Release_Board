@@ -19,6 +19,9 @@
       <el-table-column label="启用" width="90">
         <template #default="{ row }"><el-tag :type="row.enabled ? 'success' : 'info'">{{ row.enabled ? '是' : '否' }}</el-tag></template>
       </el-table-column>
+      <el-table-column label="源码包" width="100">
+        <template #default="{ row }"><el-tag :type="row.show_source_archives ? 'success' : 'info'">{{ row.show_source_archives ? '显示' : '隐藏' }}</el-tag></template>
+      </el-table-column>
       <el-table-column label="操作" width="260" fixed="right">
         <template #default="{ row }">
           <el-button :icon="RefreshCw" :loading="syncing === row.id" @click="sync(row.id)">同步</el-button>

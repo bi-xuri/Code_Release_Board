@@ -6,6 +6,7 @@ from app.models.entities import (
     Repository,
     SyncLog,
     User,
+    user_repository_access,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "Repository",
     "SyncLog",
     "User",
+    "user_repository_access",
 ]

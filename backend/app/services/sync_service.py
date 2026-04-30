@@ -4,7 +4,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.connectors.cnb import CNBConnector
-from app.connectors.generic import GenericConnector
 from app.connectors.github import GitHubConnector
 from app.connectors.gitlab import GitLabConnector
 from app.connectors.manual import ManualConnector
@@ -21,6 +20,7 @@ def build_connector(repository: Repository):
             repo=repository.repo_name or "",
             token=token,
             api_base_url=repository.api_base_url,
+            include_source_archives=repository.show_source_archives,
         )
     if provider == "gitlab":
         return GitLabConnector(
@@ -36,9 +36,8 @@ def build_connector(repository: Repository):
             owner=repository.owner,
             repo=repository.repo_name,
             token=token,
+            include_source_archives=repository.show_source_archives,
         )
-    if provider in {"generic", "generic_http_api"}:
-        return GenericConnector(api_base_url=repository.api_base_url or repository.repo_url or "", token=token)
     return ManualConnector()
 
 
@@ -85,7 +84,9 @@ async def sync_repository(db: Session, repository_id: int) -> SyncLog:
             existing.updated_at = datetime.now(timezone.utc)
             db.flush()
 
+            seen_asset_urls = set()
             for asset in item.assets:
+                seen_asset_urls.add(asset.download_url)
                 existing_asset = db.scalar(
                     select(FirmwareAsset).where(
                         FirmwareAsset.release_id == existing.id,
@@ -103,6 +104,12 @@ async def sync_repository(db: Session, repository_id: int) -> SyncLog:
                 existing_asset.file_size = asset.file_size
                 existing_asset.content_type = asset.content_type
                 existing_asset.source = repository.provider
+                existing_asset.local_path = asset.metadata.get("cnb_path")
+
+            stale_assets = db.scalars(select(FirmwareAsset).where(FirmwareAsset.release_id == existing.id)).all()
+            for stale_asset in stale_assets:
+                if stale_asset.download_url not in seen_asset_urls:
+                    db.delete(stale_asset)
 
         log.status = "success"
         log.message = f"Synced {len(releases)} release(s)."

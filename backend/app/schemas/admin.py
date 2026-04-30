@@ -22,6 +22,7 @@ class RepositoryBase(BaseModel):
     repo_name: str | None = None
     project_id: str | None = None
     enabled: bool = True
+    show_source_archives: bool = False
     sync_interval_minutes: int = 60
 
 
@@ -40,6 +41,51 @@ class RepositoryOut(RepositoryBase):
     access_token_set: bool
     created_at: datetime
     updated_at: datetime
+
+
+class UserRepositoryAccessOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    provider: str
+
+
+class UserBase(BaseModel):
+    username: str
+    display_name: str | None = None
+    email: str | None = None
+    role: str = "viewer"
+    is_active: bool = True
+    repository_ids: list[int] = []
+
+
+class UserCreate(UserBase):
+    password: str
+
+
+class UserUpdate(BaseModel):
+    username: str
+    display_name: str | None = None
+    email: str | None = None
+    role: str = "viewer"
+    is_active: bool = True
+    repository_ids: list[int] = []
+    password: str | None = None
+
+
+class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+    display_name: str | None
+    email: str | None
+    role: str
+    is_active: bool
+    repository_ids: list[int] = []
+    repositories: list[UserRepositoryAccessOut] = []
+    created_at: datetime
 
 
 class SyncLogOut(BaseModel):

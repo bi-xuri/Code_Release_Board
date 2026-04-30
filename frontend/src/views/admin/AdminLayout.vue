@@ -4,6 +4,7 @@
       <div class="brand"><Boxes :size="22" /> 发布后台</div>
       <el-menu router :default-active="$route.path">
         <el-menu-item index="/admin/repositories"><Database :size="16" /> 仓库配置</el-menu-item>
+        <el-menu-item index="/admin/users"><Users :size="16" /> 用户管理</el-menu-item>
         <el-menu-item index="/admin/sync-logs"><History :size="16" /> 同步日志</el-menu-item>
         <el-menu-item index="/admin/download-logs"><Download :size="16" /> 下载日志</el-menu-item>
       </el-menu>
@@ -19,7 +20,7 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
-import { Boxes, Database, Download, History } from 'lucide-vue-next'
+import { Boxes, Database, Download, History, Users } from 'lucide-vue-next'
 
 const router = useRouter()
 function logout() {

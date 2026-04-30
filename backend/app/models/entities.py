@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Table, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -10,14 +10,27 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+user_repository_access = Table(
+    "user_repository_access",
+    Base.metadata,
+    Column("user_id", ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("repository_id", ForeignKey("repositories.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     username: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    display_name: Mapped[str | None] = mapped_column(String(100))
+    email: Mapped[str | None] = mapped_column(String(200))
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(50), default="admin", nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    repositories: Mapped[list["Repository"]] = relationship(secondary=user_repository_access, back_populates="users")
 
 
 class Repository(Base):
@@ -33,12 +46,14 @@ class Repository(Base):
     project_id: Mapped[str | None] = mapped_column(String(300))
     access_token_encrypted: Mapped[str | None] = mapped_column(Text)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    show_source_archives: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     sync_interval_minutes: Mapped[int] = mapped_column(Integer, default=60, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
     releases: Mapped[list["Release"]] = relationship(back_populates="repository", cascade="all, delete-orphan")
     sync_logs: Mapped[list["SyncLog"]] = relationship(back_populates="repository", cascade="all, delete-orphan")
+    users: Mapped[list[User]] = relationship(secondary=user_repository_access, back_populates="repositories")
 
 
 class Project(Base):

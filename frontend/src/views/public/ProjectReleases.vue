@@ -14,6 +14,9 @@
     </el-input>
     <el-table :data="releases" v-loading="loading" row-key="id" @row-click="openRelease">
       <el-table-column prop="version" label="版本号" min-width="140" />
+      <el-table-column label="Tag" min-width="160">
+        <template #default="{ row }">{{ row.tag_name || '-' }}</template>
+      </el-table-column>
       <el-table-column prop="title" label="标题" min-width="180" />
       <el-table-column label="标识" width="170">
         <template #default="{ row }">

@@ -1,13 +1,15 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import desc, or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.connectors.base import AssetInfo
 from app.db.session import get_db
 from app.models import FirmwareAsset, Project, Release, Repository
 from app.schemas.public import AssetOut, ProjectOut, ReleaseDetail, ReleaseSummary
+from app.services.sync_service import build_connector
 from app.services.download_service import record_download
 
 
@@ -42,7 +44,7 @@ def list_projects(
     device_model: str | None = Query(default=None),
     version: str | None = Query(default=None),
 ) -> list[ProjectOut]:
-    stmt = select(Project).options(selectinload(Project.releases).selectinload(Release.repository))
+    stmt = select(Project).where(Project.releases.any()).options(selectinload(Project.releases).selectinload(Release.repository))
     filters = []
     search = q or project
     if search:
@@ -102,11 +104,41 @@ def release_detail(release_id: int, db: DbDep) -> ReleaseDetail:
 
 
 @router.get("/assets/{asset_id}/download")
-def download_asset(asset_id: int, request: Request, db: DbDep) -> RedirectResponse:
-    asset = db.scalar(select(FirmwareAsset).where(FirmwareAsset.id == asset_id))
+async def download_asset(asset_id: int, request: Request, db: DbDep) -> Response:
+    asset = db.scalar(
+        select(FirmwareAsset)
+        .where(FirmwareAsset.id == asset_id)
+        .options(selectinload(FirmwareAsset.release).selectinload(Release.repository))
+    )
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
     record_download(db, asset, request)
+    if asset.source == "cnb" and (asset.local_path or asset.download_url.startswith("cnb-archive://")):
+        release = asset.release
+        repository = release.repository if release else None
+        if not release or not repository:
+            raise HTTPException(status_code=500, detail="CNB asset metadata is incomplete")
+        connector = build_connector(repository)
+        metadata = {"cnb_tag": release.version}
+        if asset.local_path:
+            metadata["cnb_path"] = asset.local_path
+        if asset.download_url.startswith("cnb-archive://"):
+            metadata["cnb_archive_format"] = "zip" if asset.download_url.endswith("/zip") else "tar.gz"
+        content = await connector.download_asset(
+            AssetInfo(
+                name=asset.name,
+                file_name=asset.file_name,
+                file_size=asset.file_size,
+                content_type=asset.content_type,
+                download_url=asset.download_url,
+                metadata=metadata,
+            )
+        )
+        headers = {
+            "Content-Disposition": f'attachment; filename="{asset.file_name or asset.name}"',
+        }
+        media_type = asset.content_type or "application/octet-stream"
+        return Response(content=content, media_type=media_type, headers=headers)
     if asset.local_path:
         raise HTTPException(status_code=501, detail="Local file serving is reserved for the next version")
     return RedirectResponse(asset.download_url, status_code=302)

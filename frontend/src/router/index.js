@@ -9,6 +9,7 @@ import Repositories from '../views/admin/Repositories.vue'
 import RepositoryForm from '../views/admin/RepositoryForm.vue'
 import SyncLogs from '../views/admin/SyncLogs.vue'
 import DownloadLogs from '../views/admin/DownloadLogs.vue'
+import Users from '../views/admin/Users.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -39,6 +40,7 @@ const router = createRouter({
         { path: 'repositories', component: Repositories },
         { path: 'repositories/create', component: RepositoryForm },
         { path: 'repositories/:id/edit', component: RepositoryForm },
+        { path: 'users', component: Users },
         { path: 'sync-logs', component: SyncLogs },
         { path: 'download-logs', component: DownloadLogs }
       ]

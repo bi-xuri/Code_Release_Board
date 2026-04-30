@@ -6,9 +6,17 @@ from app.connectors.base import AssetInfo, ReleaseInfo
 
 
 class GitHubConnector:
-    def __init__(self, owner: str, repo: str, token: str | None = None, api_base_url: str | None = None) -> None:
+    def __init__(
+        self,
+        owner: str,
+        repo: str,
+        token: str | None = None,
+        api_base_url: str | None = None,
+        include_source_archives: bool = False,
+    ) -> None:
         self.owner = owner
         self.repo = repo
+        self.include_source_archives = include_source_archives
         self.api_base_url = (api_base_url or "https://api.github.com").rstrip("/")
         self.headers = {"Accept": "application/vnd.github+json"}
         if token:
@@ -52,6 +60,8 @@ class GitHubConnector:
             for asset in item.get("assets", [])
             if asset.get("browser_download_url")
         ]
+        if self.include_source_archives:
+            assets.extend(self._parse_source_archives(item))
         released_at = item.get("published_at") or item.get("created_at")
         return ReleaseInfo(
             version=item.get("tag_name") or item.get("name") or str(item.get("id")),
@@ -64,3 +74,28 @@ class GitHubConnector:
             assets=assets,
             raw=item,
         )
+
+    def _parse_source_archives(self, item: dict) -> list[AssetInfo]:
+        tag_name = item.get("tag_name") or item.get("name") or str(item.get("id"))
+        archives = []
+        if item.get("zipball_url"):
+            archives.append(
+                AssetInfo(
+                    name="Source code (zip)",
+                    file_name=f"{tag_name}.zip",
+                    content_type="application/zip",
+                    download_url=item["zipball_url"],
+                    metadata={"source_archive": True},
+                )
+            )
+        if item.get("tarball_url"):
+            archives.append(
+                AssetInfo(
+                    name="Source code (tar.gz)",
+                    file_name=f"{tag_name}.tar.gz",
+                    content_type="application/gzip",
+                    download_url=item["tarball_url"],
+                    metadata={"source_archive": True},
+                )
+            )
+        return archives
