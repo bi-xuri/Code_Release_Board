@@ -24,7 +24,10 @@
           <h3>{{ project.name }}</h3>
           <el-tag v-if="project.latest_release" type="success">latest</el-tag>
         </div>
-        <p class="meta">{{ project.device_model || '未设置设备型号' }}</p>
+        <p class="meta">
+          {{ project.device_model || '未设置设备型号' }}
+          <span v-if="project.hardware_version"> · 硬件版本 {{ project.hardware_version }}</span>
+        </p>
         <p>{{ project.description || '暂无项目描述' }}</p>
         <el-divider />
         <div v-if="project.latest_release" class="meta">

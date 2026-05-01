@@ -54,9 +54,12 @@ async def sync_repository(db: Session, repository_id: int) -> SyncLog:
     try:
         connector = build_connector(repository)
         releases = await connector.list_releases()
+        releases = [item for item in releases if _matches_release_filter(repository, item)]
         project = _get_or_create_project(db, repository)
+        seen_versions: set[str] = set()
 
         for index, item in enumerate(releases):
+            seen_versions.add(item.version)
             existing = db.scalar(
                 select(Release).where(
                     Release.repository_id == repository.id,
@@ -111,8 +114,14 @@ async def sync_repository(db: Session, repository_id: int) -> SyncLog:
                 if stale_asset.download_url not in seen_asset_urls:
                     db.delete(stale_asset)
 
+        stale_releases = db.scalars(select(Release).where(Release.repository_id == repository.id)).all()
+        for stale_release in stale_releases:
+            if stale_release.version not in seen_versions:
+                db.delete(stale_release)
+
         log.status = "success"
-        log.message = f"Synced {len(releases)} release(s)."
+        filter_message = f' with prefix "{repository.release_tag_prefix}"' if repository.release_tag_prefix else ""
+        log.message = f"Synced {len(releases)} release(s){filter_message}."
     except Exception as exc:
         log.status = "failed"
         log.message = str(exc)
@@ -125,10 +134,20 @@ async def sync_repository(db: Session, repository_id: int) -> SyncLog:
 
 def _get_or_create_project(db: Session, repository: Repository) -> Project:
     project = db.scalar(select(Project).where(Project.name == repository.name))
-    if project:
-        return project
-    project = Project(name=repository.name, description=repository.repo_url)
-    db.add(project)
+    if not project:
+        project = Project(name=repository.name, description=repository.repo_url)
+        db.add(project)
+    project.description = repository.repo_url
+    project.device_model = repository.device_model
+    project.hardware_version = repository.hardware_version
     db.commit()
     db.refresh(project)
     return project
+
+
+def _matches_release_filter(repository: Repository, release) -> bool:
+    prefix = (repository.release_tag_prefix or "").strip()
+    if not prefix:
+        return True
+    candidates = [release.tag_name, release.version, release.title]
+    return any(candidate.startswith(prefix) for candidate in candidates if candidate)

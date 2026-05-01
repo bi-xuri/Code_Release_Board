@@ -39,6 +39,9 @@ def repo_out(repository: Repository) -> RepositoryOut:
         owner=repository.owner,
         repo_name=repository.repo_name,
         project_id=repository.project_id,
+        device_model=repository.device_model,
+        hardware_version=repository.hardware_version,
+        release_tag_prefix=repository.release_tag_prefix,
         enabled=repository.enabled,
         show_source_archives=repository.show_source_archives,
         sync_interval_minutes=repository.sync_interval_minutes,
@@ -77,7 +80,7 @@ def _load_repositories(db: Session, repository_ids: list[int]) -> list[Repositor
 @router.post("/login", response_model=LoginResponse)
 def login(payload: LoginRequest, db: DbDep) -> LoginResponse:
     user = db.scalar(select(User).where(User.username == payload.username))
-    if not user or not user.is_active or not verify_password(payload.password, user.password_hash):
+    if not user or not user.is_active or user.role != "admin" or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
     return LoginResponse(access_token=create_access_token(user.username))
 
@@ -90,13 +93,15 @@ def list_repositories(_: AdminDep, db: DbDep) -> list[RepositoryOut]:
 
 @router.get("/users", response_model=list[UserOut])
 def list_users(_: AdminDep, db: DbDep) -> list[UserOut]:
-    users = db.scalars(select(User).options(selectinload(User.repositories)).order_by(desc(User.created_at))).all()
+    users = db.scalars(
+        select(User).where(User.role != "admin").options(selectinload(User.repositories)).order_by(desc(User.created_at))
+    ).all()
     return [user_out(user) for user in users]
 
 
 @router.get("/users/{user_id}", response_model=UserOut)
 def get_user(user_id: int, _: AdminDep, db: DbDep) -> UserOut:
-    user = db.scalar(select(User).where(User.id == user_id).options(selectinload(User.repositories)))
+    user = db.scalar(select(User).where(User.id == user_id, User.role != "admin").options(selectinload(User.repositories)))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user_out(user)
@@ -112,7 +117,7 @@ def create_user(payload: UserCreate, _: AdminDep, db: DbDep) -> UserOut:
         display_name=payload.display_name,
         email=payload.email,
         password_hash=hash_password(payload.password),
-        role=payload.role,
+        role="viewer",
         is_active=payload.is_active,
         repositories=_load_repositories(db, payload.repository_ids),
     )
@@ -125,19 +130,17 @@ def create_user(payload: UserCreate, _: AdminDep, db: DbDep) -> UserOut:
 
 @router.put("/users/{user_id}", response_model=UserOut)
 def update_user(user_id: int, payload: UserUpdate, current_user: AdminDep, db: DbDep) -> UserOut:
-    user = db.scalar(select(User).where(User.id == user_id).options(selectinload(User.repositories)))
+    user = db.scalar(select(User).where(User.id == user_id, User.role != "admin").options(selectinload(User.repositories)))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     duplicate = db.scalar(select(User).where(User.username == payload.username, User.id != user_id))
     if duplicate:
         raise HTTPException(status_code=400, detail="Username already exists")
-    if user.id == current_user.id and (payload.role != "admin" or not payload.is_active):
-        raise HTTPException(status_code=400, detail="Cannot remove your own admin access")
 
     user.username = payload.username
     user.display_name = payload.display_name
     user.email = payload.email
-    user.role = payload.role
+    user.role = "viewer"
     user.is_active = payload.is_active
     user.repositories = _load_repositories(db, payload.repository_ids)
     if payload.password:
@@ -170,6 +173,9 @@ def create_repository(payload: RepositoryCreate, _: AdminDep, db: DbDep) -> Repo
         owner=payload.owner,
         repo_name=payload.repo_name,
         project_id=payload.project_id,
+        device_model=payload.device_model,
+        hardware_version=payload.hardware_version,
+        release_tag_prefix=payload.release_tag_prefix,
         access_token_encrypted=encrypt_token(payload.access_token),
         enabled=payload.enabled,
         show_source_archives=payload.show_source_archives,
@@ -193,6 +199,9 @@ def update_repository(repository_id: int, payload: RepositoryUpdate, _: AdminDep
     repository.owner = payload.owner
     repository.repo_name = payload.repo_name
     repository.project_id = payload.project_id
+    repository.device_model = payload.device_model
+    repository.hardware_version = payload.hardware_version
+    repository.release_tag_prefix = payload.release_tag_prefix
     repository.enabled = payload.enabled
     repository.show_source_archives = payload.show_source_archives
     repository.sync_interval_minutes = payload.sync_interval_minutes

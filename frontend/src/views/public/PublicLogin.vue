@@ -1,15 +1,18 @@
 <template>
-  <div class="page-shell" style="display: grid; place-items: center; padding: 24px">
-    <el-card shadow="never" style="width: min(420px, 100%)">
+  <div class="page-shell public-login-shell">
+    <el-card shadow="never" class="public-login-card">
       <template #header>
-        <div class="brand"><Lock :size="20" /> 管理员登录</div>
+        <div class="brand">
+          <Boxes :size="20" />
+          前台用户登录
+        </div>
       </template>
       <el-form :model="form" label-position="top" @submit.prevent="login">
         <el-form-item label="用户名">
           <el-input v-model="form.username" autocomplete="username" />
         </el-form-item>
         <el-form-item label="密码">
-          <el-input v-model="form.password" type="password" autocomplete="current-password" show-password @keyup.enter="login" />
+          <el-input v-model="form.password" type="password" show-password autocomplete="current-password" @keyup.enter="login" />
         </el-form-item>
         <el-button type="primary" style="width: 100%" :loading="loading" @click="login">登录</el-button>
       </el-form>
@@ -21,8 +24,8 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Lock } from 'lucide-vue-next'
-import { adminApi } from '../../api/admin'
+import { Boxes } from 'lucide-vue-next'
+import { publicApi } from '../../api/public'
 
 const router = useRouter()
 const loading = ref(false)
@@ -31,9 +34,10 @@ const form = reactive({ username: '', password: '' })
 async function login() {
   loading.value = true
   try {
-    const { data } = await adminApi.login(form)
-    localStorage.setItem('admin_token', data.access_token)
-    router.push('/admin/repositories')
+    const { data } = await publicApi.login(form)
+    localStorage.setItem('public_token', data.access_token)
+    localStorage.setItem('public_user', JSON.stringify(data.user))
+    router.push('/')
   } catch {
     ElMessage.error('登录失败')
   } finally {

@@ -22,6 +22,9 @@
       <el-table-column label="源码包" width="100">
         <template #default="{ row }"><el-tag :type="row.show_source_archives ? 'success' : 'info'">{{ row.show_source_archives ? '显示' : '隐藏' }}</el-tag></template>
       </el-table-column>
+      <el-table-column label="标签前缀" min-width="150">
+        <template #default="{ row }">{{ row.release_tag_prefix || '全部' }}</template>
+      </el-table-column>
       <el-table-column label="操作" width="260" fixed="right">
         <template #default="{ row }">
           <el-button :icon="RefreshCw" :loading="syncing === row.id" @click="sync(row.id)">同步</el-button>

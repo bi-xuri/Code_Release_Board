@@ -31,6 +31,12 @@ def _ensure_repository_columns() -> None:
             connection.execute(
                 text(f"ALTER TABLE repositories ADD COLUMN show_source_archives BOOLEAN NOT NULL DEFAULT {default_false}")
             )
+        if "device_model" not in repository_columns:
+            connection.execute(text("ALTER TABLE repositories ADD COLUMN device_model VARCHAR(200)"))
+        if "hardware_version" not in repository_columns:
+            connection.execute(text("ALTER TABLE repositories ADD COLUMN hardware_version VARCHAR(100)"))
+        if "release_tag_prefix" not in repository_columns:
+            connection.execute(text("ALTER TABLE repositories ADD COLUMN release_tag_prefix VARCHAR(200)"))
 
         user_columns = {column["name"] for column in inspector.get_columns("users")}
         if "display_name" not in user_columns:

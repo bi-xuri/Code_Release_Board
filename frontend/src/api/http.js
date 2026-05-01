@@ -5,7 +5,8 @@ export const http = axios.create({
 })
 
 http.interceptors.request.use((config) => {
-  const token = localStorage.getItem('admin_token')
+  const isAdminRequest = config.url?.startsWith('/admin')
+  const token = isAdminRequest ? localStorage.getItem('admin_token') : localStorage.getItem('public_token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -15,9 +16,15 @@ http.interceptors.request.use((config) => {
 http.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && location.pathname.startsWith('/admin')) {
-      localStorage.removeItem('admin_token')
-      location.href = '/admin/login'
+    if (error.response?.status === 401) {
+      if (location.pathname.startsWith('/admin')) {
+        localStorage.removeItem('admin_token')
+        location.href = '/admin/login'
+      } else {
+        localStorage.removeItem('public_token')
+        localStorage.removeItem('public_user')
+        location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }

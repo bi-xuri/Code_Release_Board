@@ -2,8 +2,8 @@
   <section>
     <div class="toolbar">
       <div>
-        <h1>用户管理</h1>
-        <p class="meta">管理后台账号、状态和可查看仓库</p>
+        <h1>前台用户</h1>
+        <p class="meta">管理前台登录账号、状态和可查看仓库</p>
       </div>
       <el-button type="primary" :icon="UserPlus" @click="openCreate">新增用户</el-button>
     </div>
@@ -15,9 +15,6 @@
           <div>{{ row.display_name || '-' }}</div>
           <div class="meta">{{ row.email || '-' }}</div>
         </template>
-      </el-table-column>
-      <el-table-column label="角色" width="110">
-        <template #default="{ row }"><el-tag :type="row.role === 'admin' ? 'danger' : 'info'">{{ row.role }}</el-tag></template>
       </el-table-column>
       <el-table-column label="状态" width="100">
         <template #default="{ row }"><el-tag :type="row.is_active ? 'success' : 'info'">{{ row.is_active ? '启用' : '停用' }}</el-tag></template>
@@ -43,12 +40,6 @@
         <el-form-item label="账号"><el-input v-model="form.username" /></el-form-item>
         <el-form-item label="显示名称"><el-input v-model="form.display_name" /></el-form-item>
         <el-form-item label="邮箱"><el-input v-model="form.email" /></el-form-item>
-        <el-form-item label="角色">
-          <el-select v-model="form.role">
-            <el-option label="管理员" value="admin" />
-            <el-option label="普通用户" value="viewer" />
-          </el-select>
-        </el-form-item>
         <el-form-item :label="editingId ? '重置密码' : '密码'">
           <el-input
             v-model="form.password"
@@ -96,7 +87,6 @@ function defaultForm() {
     username: '',
     display_name: '',
     email: '',
-    role: 'viewer',
     password: '',
     is_active: true,
     repository_ids: []
@@ -130,7 +120,6 @@ function openEdit(row) {
     username: row.username,
     display_name: row.display_name || '',
     email: row.email || '',
-    role: row.role,
     password: '',
     is_active: row.is_active,
     repository_ids: [...row.repository_ids]

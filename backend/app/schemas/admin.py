@@ -21,6 +21,9 @@ class RepositoryBase(BaseModel):
     owner: str | None = None
     repo_name: str | None = None
     project_id: str | None = None
+    device_model: str | None = None
+    hardware_version: str | None = None
+    release_tag_prefix: str | None = None
     enabled: bool = True
     show_source_archives: bool = False
     sync_interval_minutes: int = 60

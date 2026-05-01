@@ -52,3 +52,23 @@ class ProjectOut(BaseModel):
     hardware_version: str | None
     created_at: datetime
     latest_release: ReleaseSummary | None = None
+
+
+class PublicLoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class PublicUserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+    display_name: str | None
+    role: str
+
+
+class PublicLoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: PublicUserOut

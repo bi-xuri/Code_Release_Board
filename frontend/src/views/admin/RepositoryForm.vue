@@ -23,6 +23,12 @@
         <el-form-item label="Owner / Group"><el-input v-model="form.owner" /></el-form-item>
         <el-form-item label="Repo / Project"><el-input v-model="form.repo_name" /></el-form-item>
         <el-form-item label="GitLab Project ID"><el-input v-model="form.project_id" placeholder="可填数字 ID 或 group/project" /></el-form-item>
+        <el-form-item label="设备型号"><el-input v-model="form.device_model" placeholder="例如 Lumenlabs_L100_GD32" /></el-form-item>
+        <el-form-item label="硬件版本"><el-input v-model="form.hardware_version" placeholder="例如 V1.0" /></el-form-item>
+        <el-form-item label="发布标签前缀">
+          <el-input v-model="form.release_tag_prefix" placeholder="例如 L100_GD32_" />
+          <div class="meta">只同步 Tag / Release 名称以前缀开头的版本，留空表示全部同步</div>
+        </el-form-item>
         <el-form-item label="Access Token"><el-input v-model="form.access_token" type="password" show-password placeholder="留空则保持原值" /></el-form-item>
         <el-form-item label="启用"><el-switch v-model="form.enabled" /></el-form-item>
         <el-form-item label="显示源码包">
@@ -60,6 +66,9 @@ const form = reactive({
   owner: '',
   repo_name: '',
   project_id: '',
+  device_model: '',
+  hardware_version: '',
+  release_tag_prefix: '',
   access_token: '',
   enabled: true,
   show_source_archives: false,

@@ -3,6 +3,7 @@ import PublicLayout from '../views/public/PublicLayout.vue'
 import ProjectList from '../views/public/ProjectList.vue'
 import ProjectReleases from '../views/public/ProjectReleases.vue'
 import ReleaseDetail from '../views/public/ReleaseDetail.vue'
+import PublicLogin from '../views/public/PublicLogin.vue'
 import AdminLayout from '../views/admin/AdminLayout.vue'
 import Login from '../views/admin/Login.vue'
 import Repositories from '../views/admin/Repositories.vue'
@@ -17,6 +18,7 @@ const router = createRouter({
     {
       path: '/',
       component: PublicLayout,
+      meta: { requiresPublicAuth: true },
       children: [
         { path: '', component: ProjectList },
         { path: 'projects/:id', component: ProjectReleases },
@@ -30,11 +32,12 @@ const router = createRouter({
         }
       ]
     },
+    { path: '/login', component: PublicLogin },
     { path: '/admin/login', component: Login },
     {
       path: '/admin',
       component: AdminLayout,
-      meta: { requiresAuth: true },
+      meta: { requiresAdminAuth: true },
       children: [
         { path: '', redirect: '/admin/repositories' },
         { path: 'repositories', component: Repositories },
@@ -49,8 +52,14 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  if (to.meta.requiresAuth && !localStorage.getItem('admin_token')) {
+  if (to.meta.requiresAdminAuth && !localStorage.getItem('admin_token')) {
     return '/admin/login'
+  }
+  if (to.meta.requiresPublicAuth && !localStorage.getItem('public_token')) {
+    return '/login'
+  }
+  if (to.path === '/login' && localStorage.getItem('public_token')) {
+    return '/'
   }
 })
 

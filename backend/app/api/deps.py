@@ -11,6 +11,7 @@ from app.models import User
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/admin/login")
+public_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/public/login")
 
 
 def get_current_admin(
@@ -23,4 +24,17 @@ def get_current_admin(
     user = db.scalar(select(User).where(User.username == username))
     if not user or not user.is_active or user.role != "admin":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Admin required")
+    return user
+
+
+def get_current_user(
+    token: Annotated[str, Depends(public_oauth2_scheme)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
+    username = decode_access_token(token)
+    if not username:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    user = db.scalar(select(User).where(User.username == username))
+    if not user or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User unavailable")
     return user
